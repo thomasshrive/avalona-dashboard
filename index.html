@@ -2220,7 +2220,11 @@
       .concat(MODULES.filter(function (m) { return m.status === "backlog"; })
         .sort(function (a, b) { return ORD[a.id].pos - ORD[b.id].pos; }));
 
-    var NOW_WEEK = 13; /* 28 Jul is thirteen weeks after the 27 Apr anchor */
+    /* the week statuses were last stated (updated on every regeneration), vs the
+       live today marker which moves as the file ages — if a bar's end falls left
+       of the line, that work is overdue against what was last stated */
+    var STATUS_AS_OF = 15; /* 11 Aug 2026, fifteen weeks after the 27 Apr anchor */
+    var NOW_WEEK = STATUS_AS_OF;
     var lanes = [0, 0, 0];
     var end = {};
     var sched = [];
@@ -2320,7 +2324,7 @@
     document.getElementById("gantt-note").textContent =
       "The whole build on one timeline: completed modules reconstructed over the past three months in "
       + "dependency order (faded green, ticked), in-progress work around the today line, and the remaining "
-      + "modules in suggested order \u2014 in-progress bars straddle the line with roughly half their size to "
+      + "modules in suggested order \u2014 in-progress bars end at their stated finish relative to the last status update, so a bar falling behind the today line is overdue, not history. Roughly half their size to "
       + "go, and nothing not yet started is scheduled before it. Three parallel developers, S/M/L/XL as "
       + "1/2/3/5 weeks, sized "
       + "aggressively on the AI-first assumption. The past is a plan-shaped reconstruction, not a record of "
