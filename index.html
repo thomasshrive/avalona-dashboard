@@ -1709,10 +1709,14 @@
         + (m.status === "progress" ? 4 : 0) + 0.1 * m.fanout - 2 * unmetNow(id).length;
     };
     while (rem.length) {
-      rem.sort(function (a, b) {
+      /* never rank a module ahead of its own dependency: pick from the buildable
+         set when one exists; fall back to everything only for cycles */
+      var eligible = rem.filter(function (id) { return unmetNow(id).length === 0; });
+      var pool = eligible.length ? eligible : rem;
+      pool.sort(function (a, b) {
         return (score(b) - score(a)) || (DEPENDANTS[b].length - DEPENDANTS[a].length);
       });
-      var p = rem[0], u = unmetNow(p), g = gapUnder(p), why;
+      var p = pool[0], u = unmetNow(p), g = gapUnder(p), why;
       if (g.length) {
         why = "Closes a gap under " + g.map(function (x) { return byId[x].name; }).join(" and ")
             + ", which " + (g.length > 1 ? "are" : "is") + " already built on it.";
