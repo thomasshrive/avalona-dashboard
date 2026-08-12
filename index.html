@@ -203,7 +203,10 @@
   .g-row{position:relative;height:30px;border-bottom:1px solid var(--line-soft)}
   .g-row:nth-child(even){background:#F5F8F8}
   .g-bar{position:absolute;top:5px;height:20px;display:flex;align-items:center;gap:6px;
-    padding:0 8px;color:#fff;font-size:10px;white-space:nowrap;overflow:visible}
+    padding:0 8px;color:#fff;font-size:10px;white-space:nowrap;overflow:visible;cursor:pointer;border:none}
+  .g-bar:hover{filter:brightness(1.12);outline:1px solid var(--ink)}
+  .g-lbl{cursor:pointer}
+  .g-lbl:hover span:first-child{text-decoration:underline}
   .g-bar .sz{font-size:8px;letter-spacing:.1em;opacity:.85}
   .g-lbl{position:absolute;top:5px;height:20px;display:flex;align-items:center;gap:6px;
     font-size:10px;color:var(--text);white-space:nowrap}
@@ -1668,6 +1671,17 @@
   }
 
   var buildOrder = false;
+  var SPEC_OPENERS = {};
+  function openSpec(id) {
+    /* switch to the catalogue tab, open the module's spec, scroll to it */
+    var tab = document.querySelector('.tab[data-view="catalogue"]');
+    if (tab) tab.click();
+    var open = SPEC_OPENERS[id];
+    if (open) {
+      var tr = open();
+      setTimeout(function () { tr.scrollIntoView({ behavior: "smooth", block: "center" }); }, 60);
+    }
+  }
 
   /* suggested build order: leverage first, penalised for its own unmet dependencies,
      with a boost for closing a gap under something already built and for finishing
@@ -1883,6 +1897,7 @@
         });
     var body = document.getElementById("cat-body");
     body.textContent = "";
+    SPEC_OPENERS = {};
 
     rows.forEach(function (m) {
       var tr = document.createElement("tr", null);
@@ -1973,12 +1988,14 @@
       detail.appendChild(dtd);
       detail.hidden = true;
 
-      function toggle() {
-        var open = detail.hidden;
+      tr.setAttribute("data-mod", m.id);
+      function toggle(forceOpen) {
+        var open = forceOpen === true ? true : detail.hidden;
         detail.hidden = !open;
         tr.setAttribute("aria-expanded", String(open));
         tr.querySelector(".disc").textContent = open ? "\u2039" : "\u203a";
       }
+      SPEC_OPENERS[m.id] = function () { toggle(true); return tr; };
       tr.addEventListener("click", toggle);
       tr.addEventListener("keydown", function (e) {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
@@ -2266,7 +2283,7 @@
     grid.appendChild(hdr);
     sched.forEach(function (sc) {
       var row = el("div", "g-row");
-      var bar = el("div", "g-bar mono " + (sc.m.status === "complete" ? "done"
+      var bar = el("button", "g-bar mono " + (sc.m.status === "complete" ? "done"
         : (sc.m.gate === "last" ? "gated" : "lane" + sc.lane)));
       bar.style.left = (sc.start * WKPX) + "px";
       bar.style.width = (sc.dur * WKPX - 4) + "px";
@@ -2277,13 +2294,18 @@
       }
       bar.title = sc.m.name + " \u2014 " + sc.m.size + ", weeks " + (sc.start + 1) + "\u2013" + (sc.start + sc.dur)
         + (sc.m.status === "complete" ? " (built)"
-          : (sc.m.gate === "last" ? " (held to last)" : " (dev " + (sc.lane + 1) + ")"));
+          : (sc.m.gate === "last" ? " (held to last)" : " (dev " + (sc.lane + 1) + ")"))
+        + " \u00b7 click for spec";
+      bar.setAttribute("aria-label", sc.m.name + " \u2014 open specification");
+      bar.addEventListener("click", function () { openSpec(sc.m.id); });
       row.appendChild(bar);
       if (narrow) {
         var lb = el("div", "g-lbl mono");
         lb.style.left = ((sc.start + sc.dur) * WKPX + 6) + "px";
         lb.appendChild(el("span", null, sc.m.name));
         lb.appendChild(el("span", "sz", sc.m.size));
+        lb.title = "Click for spec";
+        lb.addEventListener("click", function () { openSpec(sc.m.id); });
         row.appendChild(lb);
       }
       grid.appendChild(row);
@@ -2325,7 +2347,7 @@
     document.getElementById("gantt-note").textContent =
       "The whole build on one timeline: completed modules reconstructed over the past three months in "
       + "dependency order (faded green, ticked), in-progress work around the today line, and the remaining "
-      + "modules in suggested order \u2014 in-progress bars end at their stated finish relative to the last status update, so a bar falling behind the today line is overdue, not history. Not-yet-started work is held two weeks beyond the status date by decision. Roughly half their size to "
+      + "modules in suggested order \u2014 in-progress bars end at their stated finish relative to the last status update, so a bar falling behind the today line is overdue, not history. Not-yet-started work is held two weeks beyond the status date by decision. Click any bar to open that module's full specification. Roughly half their size to "
       + "go, and nothing not yet started is scheduled before it. Three parallel developers, S/M/L/XL as "
       + "1/2/3/5 weeks, sized "
       + "aggressively on the AI-first assumption. The past is a plan-shaped reconstruction, not a record of "
